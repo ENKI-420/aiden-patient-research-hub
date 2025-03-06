@@ -6,43 +6,53 @@ from modules.crispr_ai import analyze_crispr_feasibility
 from modules.nanoparticle_simulation import simulate_nanoparticle_delivery
 from config import load_api_key
 
-# Load API keys from a separate config module
-OPENAI_API_KEY = load_api_key()
+# Constants for page names
+DIGITAL_TWIN_AI = "Digital Twin AI"
+TUMOR_EVOLUTION = "Tumor Evolution"
+CRISPR_AI = "CRISPR AI"
+NANOPARTICLE_AI = "Nanoparticle AI"
 
-if OPENAI_API_KEY is None:
-    st.error("Failed to load API key. Please check your configuration.")
-else:
+def get_api_key():
+    """Load and validate the API key."""
+    api_key = load_api_key()
+    if api_key is None:
+        st.error("Failed to load API key. Please check your configuration.")
+    return api_key
+
+def handle_patient_id_input(button_label, callback, *args):
+    """Handle patient ID input and button click events."""
+    patient_id = st.text_input("Enter Patient ID:")
+    if st.button(button_label):
+        result = callback(patient_id, *args)
+        st.json(result)
+
+def main():
+    OPENAI_API_KEY = get_api_key()
+    if not OPENAI_API_KEY:
+        return
+
     # Sidebar Navigation
     st.sidebar.title("🩺 AGILE Oncology AI Hub")
-    page = st.sidebar.radio("Navigation", ["Digital Twin AI", "Tumor Evolution", "CRISPR AI", "Nanoparticle AI"])
+    page = st.sidebar.radio("Navigation", [DIGITAL_TWIN_AI, TUMOR_EVOLUTION, CRISPR_AI, NANOPARTICLE_AI])
 
     # Page Logic
-    if page == "Digital Twin AI":
+    if page == DIGITAL_TWIN_AI:
         st.title("👥 Digital Twin AI System")
-        patient_id = st.text_input("Enter Patient ID:")
-        if st.button("Generate Digital Twin"):
-            result = generate_digital_twin(patient_id)
-            st.json(result)
+        handle_patient_id_input("Generate Digital Twin", generate_digital_twin)
 
-    elif page == "Tumor Evolution":
+    elif page == TUMOR_EVOLUTION:
         st.title("🔬 Tumor Evolution Prediction")
-        patient_id = st.text_input("Enter Patient ID:")
-        if st.button("Predict Tumor Evolution"):
-            result = predict_tumor_evolution(patient_id, ["TP53", "KRAS"])
-            st.json(result)
+        handle_patient_id_input("Predict Tumor Evolution", predict_tumor_evolution, ["TP53", "KRAS"])
 
-    elif page == "CRISPR AI":
+    elif page == CRISPR_AI:
         st.title("🧬 CRISPR Editing Feasibility AI")
-        patient_id = st.text_input("Enter Patient ID:")
-        if st.button("Analyze CRISPR Feasibility"):
-            result = analyze_crispr_feasibility(patient_id, ["BRAF", "EGFR"])
-            st.json(result)
+        handle_patient_id_input("Analyze CRISPR Feasibility", analyze_crispr_feasibility, ["BRAF", "EGFR"])
 
-    elif page == "Nanoparticle AI":
+    elif page == NANOPARTICLE_AI:
         st.title("💊 Nanoparticle Drug Delivery AI")
-        patient_id = st.text_input("Enter Patient ID:")
-        if st.button("Simulate Drug Delivery"):
-            result = simulate_nanoparticle_delivery(patient_id)
-            st.json(result)
+        handle_patient_id_input("Simulate Drug Delivery", simulate_nanoparticle_delivery)
 
     st.sidebar.caption("🔗 Powered by AI-driven Precision Medicine")
+
+if __name__ == "__main__":
+    main()
