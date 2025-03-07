@@ -5,6 +5,7 @@ from modules.tumor_evolution import predict_tumor_evolution
 from modules.crispr_ai import analyze_crispr_feasibility
 from modules.nanoparticle_simulation import simulate_nanoparticle_delivery
 from config import load_api_key
+from api_oncolo_ai__jit_plugin import some_function  # Add the correct import statement here
 
 # Constants for page names
 DIGITAL_TWIN_AI = "Digital Twin AI"
