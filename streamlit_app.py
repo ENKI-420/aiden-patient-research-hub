@@ -5,7 +5,7 @@ from modules.tumor_evolution import predict_tumor_evolution
 from modules.crispr_ai import analyze_crispr_feasibility
 from modules.nanoparticle_simulation import simulate_nanoparticle_delivery
 from config import load_api_key
-from api_oncolo_ai__jit_plugin import some_function  # Add the correct import statement here
+from api_oncolo_ai__jit_plugin import some_function  # Ensure this import is correct
 
 # Constants for page names
 DIGITAL_TWIN_AI = "Digital Twin AI"
@@ -14,9 +14,9 @@ CRISPR_AI = "CRISPR AI"
 NANOPARTICLE_AI = "Nanoparticle AI"
 
 def get_api_key():
-    """Load and validate the API key."""
-    api_key = load_api_key()
-    if api_key is None:
+    """Load and validate the API key from Streamlit secrets."""
+    api_key = st.secrets["OPENAI_API_KEY"]
+    if not api_key:
         st.error("Failed to load API key. Please check your configuration.")
     return api_key
 
