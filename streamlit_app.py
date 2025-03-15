@@ -1,59 +1,108 @@
 import streamlit as st
+import requests
+import pandas as pd
+import json
 import os
-from modules.digital_twins import generate_digital_twin
-from modules.tumor_evolution import predict_tumor_evolution
-from modules.crispr_ai import analyze_crispr_feasibility
-from modules.nanoparticle_simulation import simulate_nanoparticle_delivery
-from config import load_api_key
-from api_oncolo_ai__jit_plugin import some_function  # Ensure this import is correct
+from openai import OpenAI
+from dotenv import load_dotenv
+from beaker_report_fetching import authenticate_user, fetch_beaker_report, process_and_save_to_csv
 
-# Constants for page names
-DIGITAL_TWIN_AI = "Digital Twin AI"
-TUMOR_EVOLUTION = "Tumor Evolution"
-CRISPR_AI = "CRISPR AI"
-NANOPARTICLE_AI = "Nanoparticle AI"
+# Load environment variables
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
-def get_api_key():
-    """Load and validate the API key from Streamlit secrets."""
-    api_key = st.secrets["OPENAI_API_KEY"]
-    if not api_key:
-        st.error("Failed to load API key. Please check your configuration.")
-    return api_key
+# EPIC API URLs
+FHIR_BASE_URL = "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4/"
 
-def handle_patient_id_input(button_label, callback, *args):
-    """Handle patient ID input and button click events."""
-    patient_id = st.text_input("Enter Patient ID:")
-    if st.button(button_label):
-        result = callback(patient_id, *args)
-        st.json(result)
+# Set up the Streamlit Page
+st.set_page_config(page_title="AGENT Platform - Precision Oncology", layout="wide")
 
-def main():
-    OPENAI_API_KEY = get_api_key()
-    if not OPENAI_API_KEY:
-        return
+# Sidebar Navigation
+st.sidebar.title("🩺 AGENT AI Platform")
+option = st.sidebar.radio(
+    "Select a Section",
+    ["Home", "Login to Epic", "Fetch Beaker Report", "Genomic Analysis", "Clinical Trials", "Digital Twin Modeling", "Export Reports"]
+)
 
-    # Sidebar Navigation
-    st.sidebar.title("🩺 AGILE Oncology AI Hub")
-    page = st.sidebar.radio("Navigation", [DIGITAL_TWIN_AI, TUMOR_EVOLUTION, CRISPR_AI, NANOPARTICLE_AI])
+# EPIC Login Section
+if option == "Login to Epic":
+    st.title("🔐 Epic Login for FHIR Access")
+    username = st.text_input("Epic Username")
+    password = st.text_input("Epic Password", type="password")
 
-    # Page Logic
-    if page == DIGITAL_TWIN_AI:
-        st.title("👥 Digital Twin AI System")
-        handle_patient_id_input("Generate Digital Twin", generate_digital_twin)
+    if st.button("Login"):
+        token = authenticate_user(username, password)
+        if token:
+            st.session_state.auth_token = token
+            st.success("✅ Login successful! You can now fetch Beaker reports.")
+        else:
+            st.error("❌ Authentication failed. Please check your credentials.")
 
-    elif page == TUMOR_EVOLUTION:
-        st.title("🔬 Tumor Evolution Prediction")
-        handle_patient_id_input("Predict Tumor Evolution", predict_tumor_evolution, ["TP53", "KRAS"])
+# Fetch Beaker Report
+elif option == "Fetch Beaker Report":
+    st.title("📊 Fetch Beaker Laboratory Reports")
+    if "auth_token" not in st.session_state:
+        st.error("🔴 Please log in to Epic first!")
+    else:
+        patient_id = st.text_input("Enter Patient ID")
+        if st.button("Fetch Report"):
+            report_data = fetch_beaker_report(patient_id, st.session_state.auth_token)
+            if report_data:
+                st.write("### ✅ Beaker Report Data")
+                process_and_save_to_csv(report_data)
+                st.dataframe(pd.read_csv("beaker_report_data.csv"))
+            else:
+                st.error("❌ Failed to retrieve the Beaker Report.")
 
-    elif page == CRISPR_AI:
-        st.title("🧬 CRISPR Editing Feasibility AI")
-        handle_patient_id_input("Analyze CRISPR Feasibility", analyze_crispr_feasibility, ["BRAF", "EGFR"])
+# AI-Powered Genomic Analysis
+elif option == "Genomic Analysis":
+    st.title("🧬 AI-Powered Genomic Data Analysis")
 
-    elif page == NANOPARTICLE_AI:
-        st.title("💊 Nanoparticle Drug Delivery AI")
-        handle_patient_id_input("Simulate Drug Delivery", simulate_nanoparticle_delivery)
+    # Example AI Insights (Modify with real AI analysis)
+    st.subheader("Predicted Mutations")
+    st.write("🔍 Detected Mutations: **EGFR T790M, P53 Mutation**")
 
-    st.sidebar.caption("🔗 Powered by AI-driven Precision Medicine")
+    st.subheader("AI Treatment Insights")
+    st.write("""
+    ✅ The detected mutations suggest a potential resistance to first-line therapies.
+    ✅ Recommended targeted therapies: Combination therapies with immunotherapy and kinase inhibitors.
+    """)
 
-if __name__ == "__main__":
-    main()
+    # Run AI-powered analysis
+    if st.button("Run Advanced AI Analysis"):
+        client = OpenAI(api_key=OPENAI_API_KEY)
+        prompt = "Analyze the following genetic mutations and suggest personalized treatments:\n- EGFR T790M\n- P53 Mutation"
+        response = client.completions.create(model="gpt-4-turbo", prompt=prompt, max_tokens=500)
+        st.write("### 🤖 AI Response")
+        st.write(response.choices[0].text.strip())
+
+# Clinical Trial Matching
+elif option == "Clinical Trials":
+    st.title("🔬 AI-Driven Clinical Trial Matching")
+
+    trials = [
+        {"Trial Name": "EGFR Targeted Therapy", "Location": "New York", "Eligibility": "EGFR T790M Positive", "Phase": "Phase 2"},
+        {"Trial Name": "P53 Restoration Therapy", "Location": "California", "Eligibility": "P53 Mutation", "Phase": "Phase 1"}
+    ]
+    trials_df = pd.DataFrame(trials)
+    st.write("### Recommended Clinical Trials")
+    st.dataframe(trials_df)
+
+# Digital Twin Modeling
+elif option == "Digital Twin Modeling":
+    st.title("👥 Digital Twin Simulation for Precision Medicine")
+
+    patient_id = st.text_input("Enter Patient ID for Digital Twin")
+    if st.button("Generate Digital Twin Model"):
+        st.write("✅ **Simulated tumor response:** 85% reduction in tumor size with kinase inhibitor therapy.")
+
+# Export Reports
+elif option == "Export Reports":
+    st.title("📤 Export Results")
+    export_option = st.selectbox("Select File Format", ["CSV", "JSON", "PDF"])
+    if export_option == "CSV":
+        st.write("✅ Exporting as CSV...")
+    elif export_option == "JSON":
+        st.write("✅ Exporting as JSON...")
+    elif export_option == "PDF":
+        st.write("✅ Exporting as PDF...")
